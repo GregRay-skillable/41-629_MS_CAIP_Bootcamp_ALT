@@ -86,38 +86,11 @@ $credential = [pscredential]::new($AppId, $secureAppSecret)
 Connect-AzAccount -ServicePrincipal -Tenant $TenantId -Credential $credential -Scope Process | Out-Null
 Set-AzContext -SubscriptionId $SubscriptionId -Tenant $TenantId -Scope Process | Out-Null
 
-if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-    throw "Azure CLI 'az' was not found on PATH. Install Azure CLI before running this launcher."
-}
+$currentContext = Get-AzContext
 
-Write-Host 'Authenticating Azure CLI with the service principal...'
-& {
-    # Handle native exit codes explicitly without changing the customer's preferences.
-    $PSNativeCommandUseErrorActionPreference = $false
-    # Suppress login diagnostics so credentials cannot appear in launcher output.
-    az login `
-        --service-principal `
-        --username $AppId `
-        --password $AppSecret `
-        --tenant $TenantId `
-        --output none 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Azure CLI service-principal login failed with exit code $LASTEXITCODE."
-    }
-
-    az account set `
-        --subscription $SubscriptionId
-    if ($LASTEXITCODE -ne 0) {
-        throw "Azure CLI subscription selection failed with exit code $LASTEXITCODE."
-    }
-
-    $cliSubscriptionId = az account show --query id --output tsv
-    if ($LASTEXITCODE -ne 0) {
-        throw "Azure CLI subscription verification failed with exit code $LASTEXITCODE."
-    }
-    if ("$cliSubscriptionId".Trim() -ne $SubscriptionId.Trim()) {
-        throw 'Azure CLI subscription does not match the requested SubscriptionId.'
-    }
+if ($null -eq $currentContext -or
+    $currentContext.Subscription.Id -ne $SubscriptionId) {
+    throw 'Az PowerShell subscription context does not match the requested SubscriptionId.'
 }
 
 $workingDirectory = Join-Path ([IO.Path]::GetTempPath()) ("SkillableDay2-" + [guid]::NewGuid().ToString('N'))
