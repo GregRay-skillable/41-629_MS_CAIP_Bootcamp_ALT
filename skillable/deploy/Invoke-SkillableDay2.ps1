@@ -94,8 +94,57 @@ if ($null -eq $currentContext -or
 }
 
 $workingDirectory = Join-Path ([IO.Path]::GetTempPath()) ("SkillableDay2-" + [guid]::NewGuid().ToString('N'))
+$originalPath = $env:PATH
 try {
     New-Item -ItemType Directory -Path $workingDirectory | Out-Null
+
+    if (-not (Get-Command bicep -ErrorAction SilentlyContinue)) {
+        $toolsDirectory = Join-Path $workingDirectory 'tools'
+        New-Item -ItemType Directory -Path $toolsDirectory | Out-Null
+        $isWindowsRuntime = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+            [System.Runtime.InteropServices.OSPlatform]::Windows
+        )
+        $isLinuxRuntime = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+            [System.Runtime.InteropServices.OSPlatform]::Linux
+        )
+        if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne
+            [System.Runtime.InteropServices.Architecture]::X64 -or
+            (-not $isWindowsRuntime -and -not $isLinuxRuntime)) {
+            throw 'Automatic Bicep installation supports only Windows x64 and Linux x64. Provide a standalone Bicep CLI on PATH for this runtime.'
+        }
+
+        if ($isWindowsRuntime) {
+            $bicepAsset = 'bicep-win-x64.exe'
+            $bicepPath = Join-Path $toolsDirectory 'bicep.exe'
+        }
+        else {
+            $bicepAsset = 'bicep-linux-x64'
+            $bicepPath = Join-Path $toolsDirectory 'bicep'
+        }
+
+        Write-Host 'Downloading the standalone Bicep CLI into the temporary working directory...'
+        Invoke-WebRequest -Uri "https://github.com/Azure/bicep/releases/latest/download/$bicepAsset" `
+            -OutFile $bicepPath -UseBasicParsing
+        if ($isLinuxRuntime) {
+            & chmod +x $bicepPath
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Failed to mark the standalone Bicep CLI executable.'
+            }
+        }
+        $env:PATH = $toolsDirectory + [IO.Path]::PathSeparator + $env:PATH
+    }
+
+    try {
+        $bicepVersion = bicep --version
+        if ($LASTEXITCODE -ne 0) {
+            throw "bicep --version exited with code $LASTEXITCODE."
+        }
+        Write-Host "Standalone Bicep CLI: $bicepVersion"
+    }
+    catch {
+        throw "The standalone Bicep CLI could not be executed successfully. Az PowerShell requires a working bicep executable on PATH. $($_.Exception.Message)"
+    }
+
     $archivePath = Join-Path $workingDirectory 'repository.zip'
     $extractionPath = Join-Path $workingDirectory 'source'
 
@@ -135,6 +184,7 @@ try {
     Write-Host 'Day 2 deployment completed.'
 }
 finally {
+    $env:PATH = $originalPath
     $secureAppSecret = $null
     $credential = $null
     $secureVmAdminPassword = $null
