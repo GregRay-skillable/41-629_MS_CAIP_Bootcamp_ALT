@@ -12,6 +12,8 @@ This structure is intended to support a later move into a private organization r
 
 Contains the customer-provided Azure Modernize Bootcamp deployment source. Files in this area should remain as close to upstream as possible, and Skillable-specific automation should not be mixed into them unless there is no practical alternative.
 
+Imported from `Azure-Samples/modernize-bootcamp` at pinned commit `a97a829e37a44ae95d4aea48ad1f173836e2777d`, path `skillable/day_2/bootcamp_deployment/`. `customer/modernize-bootcamp` is intended to remain unchanged unless explicitly required.
+
 ### `/skillable/deploy/`
 
 Contains Skillable deployment-adaptation scripts. Expected future responsibilities include:
