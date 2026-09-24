@@ -16,7 +16,9 @@ Imported from `Azure-Samples/modernize-bootcamp` at pinned commit `a97a829e37a44
 
 ### `/skillable/deploy/`
 
-`skillable/deploy/Deploy-Day2.ps1` is a thin Skillable adapter that invokes the customer-owned `customer/modernize-bootcamp/infra/Deploy-Lab04.ps1` for a SQL Managed Instance deployment. It leaves the customer's prefix and deployment flow authoritative.
+`skillable/deploy/Deploy-Day2.ps1` deploys the authoritative customer template, `customer/modernize-bootcamp/infra/main.bicep`, directly with Az PowerShell's `New-AzSubscriptionDeployment` because Skillable Cloud Platform does not provide Azure CLI. It selects the supplied subscription and uses SQL Managed Instance mode, leaving the customer's default prefix, naming, resource-group creation, modules, and dependencies unchanged. It does not invoke `Deploy-Lab04.ps1`.
+
+The wrapper emits the deployment result, including its `Outputs` property, for a later Skillable finalization LCA. Customer post-deployment behavior is handled separately in Skillable finalization automation, including Front Door Private Link approval and endpoint validation; the wrapper does not perform these operations.
 
 `skillable/deploy/Invoke-SkillableDay2.ps1` is the Skillable Cloud Platform launcher that authenticates to Azure, retrieves the repository, and invokes `Deploy-Day2.ps1`. Paste it into, or invoke it from, an Execute Script in Cloud Platform LCA after resolving Skillable variables to concrete parameter values.
 
@@ -24,7 +26,7 @@ The launcher requires `SubscriptionId`, `TenantId`, `AppId`, `AppSecret`, `Envir
 
 `RepositoryBaseUrl` must be the public raw GitHub repository root in the form `https://raw.githubusercontent.com/<owner>/<repo>/<ref>` (an optional trailing slash is accepted), without a file path, query, or fragment. The ref may be a branch (including slash-containing names), tag, or commit SHA; use a trusted, pinned commit SHA for reproducible execution. The launcher downloads the corresponding complete ZIP from `codeload.github.com`, preserves relative paths, and removes its temporary files in a `finally` block. No GitHub authentication is implemented.
 
-The runtime needs PowerShell, `Az.Accounts`, and the customer deployment's Azure CLI/Bicep prerequisites, plus access to GitHub's archive endpoint and Azure. The launcher authenticates both Az PowerShell and Azure CLI with the same service principal, selects the requested subscription, and verifies the CLI subscription before downloading the repository and starting the customer deployment. It fails if Azure CLI is unavailable or any CLI authentication/account command fails. The customer's deployment confirmation behavior is unchanged.
+The launcher and direct wrapper execution need PowerShell, `Az.Accounts`, `Az.Resources`, and the standalone Bicep executable available to Az PowerShell, plus access to Azure; neither requires Azure CLI or a separately maintained ARM JSON template. `Invoke-SkillableDay2.ps1` authenticates using Az PowerShell and verifies that the active subscription matches `SubscriptionId` before downloading the repository. The launcher also requires access to GitHub's archive endpoint.
 
 Alternatively, an already-authenticated LCA can invoke `Deploy-Day2.ps1` directly with subscription, environment, location, VM administrator (with a SecureString password), and SQL Entra administrator values.
 

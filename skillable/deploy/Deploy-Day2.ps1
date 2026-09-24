@@ -45,25 +45,30 @@ $ErrorActionPreference = 'Stop'
 # The Cloud Platform LCA handles Azure authentication and Skillable variable
 # resolution before invoking this wrapper with concrete parameter values.
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$customerScript = Join-Path $repositoryRoot 'customer/modernize-bootcamp/infra/Deploy-Lab04.ps1'
-if (-not (Test-Path -LiteralPath $customerScript -PathType Leaf)) {
-    throw "Customer deployment script not found: $customerScript"
+$templateFile = Join-Path $repositoryRoot 'customer/modernize-bootcamp/infra/main.bicep'
+if (-not (Test-Path -LiteralPath $templateFile -PathType Leaf)) {
+    throw "Customer deployment template not found: $templateFile"
 }
 
-# Leave Prefix and all deployment sequencing to the customer-owned entry point.
-$deploymentParameters = @{
-    SubscriptionId       = $SubscriptionId
-    EnvironmentName      = $EnvironmentName
-    PrimaryLocation      = $PrimaryLocation
-    SecondaryLocation    = $SecondaryLocation
-    ApplicationLocation  = $ApplicationLocation
-    DatabaseMode         = 'sqlMi'
-    ConfirmSqlMiCost     = $true
-    Action               = 'Deploy'
-    VmAdminUsername      = $VmAdminUsername
-    VmAdminPassword      = $VmAdminPassword
-    SqlEntraAdminObjectId = $SqlEntraAdminObjectId
-    SqlEntraAdminLogin    = $SqlEntraAdminLogin
+Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
+
+# Leave the prefix, resource groups, and deployment dependencies to main.bicep.
+$templateParameters = @{
+    environmentName      = $EnvironmentName
+    primaryLocation      = $PrimaryLocation
+    secondaryLocation    = $SecondaryLocation
+    applicationLocation  = $ApplicationLocation
+    databaseMode         = 'sqlMi'
+    sqlEntraAdminObjectId = $SqlEntraAdminObjectId
+    sqlEntraAdminLogin    = $SqlEntraAdminLogin
+    vmAdminUsername      = $VmAdminUsername
+    vmAdminPassword      = $VmAdminPassword
 }
 
-& $customerScript @deploymentParameters
+$deploymentName = "$EnvironmentName-deploy"
+# Emit the deployment result, including Outputs, for Skillable finalization.
+New-AzSubscriptionDeployment `
+    -Name $deploymentName `
+    -Location $PrimaryLocation `
+    -TemplateFile $templateFile `
+    -TemplateParameterObject $templateParameters
