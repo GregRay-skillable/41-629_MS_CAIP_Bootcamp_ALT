@@ -140,6 +140,11 @@ try {
         throw 'The downloaded repository does not contain skillable/deploy/Deploy-Day2.ps1.'
     }
 
+    $secureVmAdminPassword = ConvertTo-SecureString `
+        -String $VmAdminPassword `
+        -AsPlainText `
+        -Force
+
     $deploymentParameters = @{
         SubscriptionId       = $SubscriptionId
         EnvironmentName      = $EnvironmentName
@@ -147,7 +152,7 @@ try {
         SecondaryLocation    = $SecondaryLocation
         ApplicationLocation  = $ApplicationLocation
         VmAdminUsername      = $VmAdminUsername
-        VmAdminPassword      = ConvertTo-SecureString -String $VmAdminPassword -AsPlainText -Force
+        VmAdminPassword      = $secureVmAdminPassword
         SqlEntraAdminObjectId = $SqlEntraAdminObjectId
         SqlEntraAdminLogin    = $SqlEntraAdminLogin
     }
@@ -157,6 +162,10 @@ try {
     Write-Host 'Day 2 deployment completed.'
 }
 finally {
+    $secureAppSecret = $null
+    $credential = $null
+    $secureVmAdminPassword = $null
+
     if (Test-Path -LiteralPath $workingDirectory) {
         Remove-Item -LiteralPath $workingDirectory -Recurse -Force
     }
