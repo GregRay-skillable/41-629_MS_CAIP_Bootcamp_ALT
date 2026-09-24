@@ -18,7 +18,15 @@ Imported from `Azure-Samples/modernize-bootcamp` at pinned commit `a97a829e37a44
 
 `skillable/deploy/Deploy-Day2.ps1` is a thin Skillable adapter that invokes the customer-owned `customer/modernize-bootcamp/infra/Deploy-Lab04.ps1` for a SQL Managed Instance deployment. It leaves the customer's prefix and deployment flow authoritative.
 
-The Cloud Platform LCA must handle Azure authentication and Skillable variable resolution before invoking the wrapper. The wrapper requires subscription, environment, location, VM administrator (with a SecureString password), and SQL Entra administrator values.
+`skillable/deploy/Invoke-SkillableDay2.ps1` is the Skillable Cloud Platform launcher that authenticates to Azure, retrieves the repository, and invokes `Deploy-Day2.ps1`. Paste it into, or invoke it from, an Execute Script in Cloud Platform LCA after resolving Skillable variables to concrete parameter values.
+
+The launcher requires `SubscriptionId`, `TenantId`, `AppId`, `AppSecret`, `EnvironmentName`, `PrimaryLocation`, `SecondaryLocation`, `ApplicationLocation`, `VmAdminUsername`, `VmAdminPassword`, `SqlEntraAdminObjectId`, `SqlEntraAdminLogin`, and `RepositoryBaseUrl`. It converts the supplied secret and VM password strings to SecureString values and does not set a prefix or deployment defaults.
+
+`RepositoryBaseUrl` must be the public raw GitHub repository root in the form `https://raw.githubusercontent.com/<owner>/<repo>/<ref>` (an optional trailing slash is accepted), without a file path, query, or fragment. The ref may be a branch (including slash-containing names), tag, or commit SHA; use a trusted, pinned commit SHA for reproducible execution. The launcher downloads the corresponding complete ZIP from `codeload.github.com`, preserves relative paths, and removes its temporary files in a `finally` block. No GitHub authentication is implemented.
+
+The runtime needs PowerShell, `Az.Accounts`, and the customer deployment's Azure CLI/Bicep prerequisites, plus access to GitHub's archive endpoint and Azure. The launcher authenticates both Az PowerShell and Azure CLI with the same service principal, selects the requested subscription, and verifies the CLI subscription before downloading the repository and starting the customer deployment. It fails if Azure CLI is unavailable or any CLI authentication/account command fails. The customer's deployment confirmation behavior is unchanged.
+
+Alternatively, an already-authenticated LCA can invoke `Deploy-Day2.ps1` directly with subscription, environment, location, VM administrator (with a SecureString password), and SQL Entra administrator values.
 
 ### `/skillable/finalize/`
 
