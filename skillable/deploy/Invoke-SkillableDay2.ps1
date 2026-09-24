@@ -139,6 +139,9 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw "bicep --version exited with code $LASTEXITCODE."
         }
+        if ([string]::IsNullOrWhiteSpace(($bicepVersion -join [Environment]::NewLine))) {
+            throw 'bicep --version returned no version information.'
+        }
         Write-Host "Standalone Bicep CLI: $bicepVersion"
     }
     catch {
