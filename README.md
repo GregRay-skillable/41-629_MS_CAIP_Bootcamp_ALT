@@ -16,13 +16,9 @@ Imported from `Azure-Samples/modernize-bootcamp` at pinned commit `a97a829e37a44
 
 ### `/skillable/deploy/`
 
-Contains Skillable deployment-adaptation scripts. Expected future responsibilities include:
+`skillable/deploy/Deploy-Day2.ps1` is a thin Skillable adapter that invokes the customer-owned `customer/modernize-bootcamp/infra/Deploy-Lab04.ps1` for a SQL Managed Instance deployment. It leaves the customer's prefix and deployment flow authoritative.
 
-- Azure authentication
-- provider registration
-- downloading or using the customer deployment source
-- supplying Skillable-specific parameter overrides
-- invoking the customer's actual deployment entry point
+The Cloud Platform LCA must handle Azure authentication and Skillable variable resolution before invoking the wrapper. The wrapper requires subscription, environment, location, VM administrator (with a SecureString password), and SQL Entra administrator values.
 
 ### `/skillable/finalize/`
 
